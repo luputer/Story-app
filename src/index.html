@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Story sharing application" />
+  <link rel="shortcut icon" href="/favicon.png" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="/styles/styles.css">
+  <title>Story App</title>
+  <script type="module" src="/scripts/index.js"></script>
+  <script src="scripts/subscribe.js" type="module"></script>
+  <style>
+    .skip-to-content {
+      position: absolute;
+      top: -40px;
+      /* Initially hidden */
+      left: 0;
+      background: #007BFF;
+      color: white;
+      padding: 8px 16px;
+      text-decoration: none;
+      z-index: 100;
+      transition: top 0.3s ease-in-out;
+    }
+
+    .skip-to-content:focus {
+      top: 0;
+      /* Show when focused */
+      outline: 2px solid #FFD700;
+    }
+
+    @media (max-width: 768px) {
+      #navigation-drawer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 250px;
+        background-color: white;
+        z-index: 1000;
+        /* Z-index tinggi agar selalu di atas peta */
+        padding-top: 60px;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
+      }
+
+      #navigation-drawer.active {
+        transform: translateX(0);
+      }
+
+      #nav-list {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1rem;
+      }
+
+      #nav-list li {
+        margin-bottom: 1rem;
+        width: 100%;
+      }
+
+      #drawer-button {
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 1001;
+        /* Z-index lebih tinggi dari drawer */
+        background-color: white;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+      }
+
+      .logo-container {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+      }
+    }
+
+    .leaflet-container {
+      z-index: 1;
+      /* Z-index lebih rendah dari navbar */
+    }
+  </style>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // Toggle navigation drawer
+      const drawerButton = document.getElementById("drawer-button");
+      const navigationDrawer = document.getElementById("navigation-drawer");
+
+      drawerButton.addEventListener("click", () => {
+        const isExpanded = drawerButton.getAttribute("aria-expanded") === "true";
+        drawerButton.setAttribute("aria-expanded", !isExpanded); // Toggle aria-expanded
+        navigationDrawer.classList.toggle("active"); // Toggle drawer visibility
+      });
+
+      // Skip to Content functionality
+      const skipToContentLink = document.querySelector('.skip-to-content');
+      const mainContent = document.getElementById('main-content');
+
+      // Prevent default behavior and focus on main content
+      skipToContentLink.addEventListener('click', (event) => {
+        event.preventDefault(); // Prevent the URL from changing
+        mainContent.setAttribute('tabindex', '-1'); // Ensure the element is focusable
+        mainContent.focus(); // Programmatically focus on the element
+      });
+
+      // Ensure "Skip to Content" appears on focus/blur
+      skipToContentLink.addEventListener('focus', () => {
+        skipToContentLink.style.top = '0';
+      });
+      skipToContentLink.addEventListener('blur', () => {
+        skipToContentLink.style.top = '-40px';
+      });
+
+      const logoLink = document.querySelector('.logo-container a');
+
+      // Show "Skip to Content" on logo focus
+      logoLink.addEventListener('focus', () => {
+        skipToContentLink.style.top = '0'; // Show "Skip to Content"
+      });
+
+      // Hide "Skip to Content" when logo loses focus
+      logoLink.addEventListener('blur', () => {
+        skipToContentLink.style.top = '-40px'; // Hide "Skip to Content"
+      });
+
+      // Support direct focus on "Skip to Content"
+      skipToContentLink.addEventListener('focus', () => {
+        skipToContentLink.style.top = '0';
+      });
+
+      skipToContentLink.addEventListener('blur', () => {
+        skipToContentLink.style.top = '-40px';
+      });
+
+    });
+  </script>
+</head>
+
+<body class="font-sans leading-relaxed bg-gray-50">
+  <!-- Skip to Content Link -->
+  <a href="#main-content" class="skip-to-content">
+    Skip to Content
+  </a>
+
+  <header class="bg-white shadow-md relative z-50">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+      <button id="drawer-button" class="md:hidden block text-2xl p-2 text-black" aria-label="Toggle navigation menu"
+        aria-controls="navigation-drawer" aria-expanded="false">
+        ☰
+      </button>
+
+      <div class="logo-container">
+        <a href="#/" class="text-2xl font-bold text-blue-600 hover:text-blue-800">Story App</a>
+      </div>
+
+      <div class="md:block hidden"><!-- Placeholder for layout balance --></div>
+
+      <nav id="navigation-drawer" class="md:block" aria-label="Main navigation">
+        <ul id="nav-list" class="md:flex font-semibold md:space-x-6">
+          <li>
+            <button id="subscribe-button" onclick="toggleSubscription()"
+              class="btn-dash btn hover:text-blue-600 hover:bg-amber-300 text-gray-600">
+              Subscribe
+            </button>
+          </li>
+          <li><a href="#/" class="text-gray-600 hover:text-blue-600">Home</a></li>
+          <li><a href="#/stories" class="text-gray-600 hover:text-blue-600">Stories</a></li>
+          <li><a href="#/add" class="text-gray-600 hover:text-blue-600">Add Story</a></li>
+          <li><a href="#/about" class="text-gray-600 hover:text-blue-600 ">About</a></li>
+          <li><a href="#/login" class="text-gray-400 hover:text-blue-600 btn btn-neutral btn-sm">Login</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main-content" class="container mx-auto px-4 py-8 min-h-screen" tabindex="-1">
+    <h1>Welcome to the Story App</h1>
+    <p>Explore, share, and discover amazing stories!</p>
+    <div id="map" class="h-96 w-full mt-4"></div>
+  </main>
+
+  <footer class="bg-gray-100">
+    <div class="container mx-auto px-4 py-6 text-center text-gray-600">
+      <p>&copy; 2024 Story App. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+
+</html>
