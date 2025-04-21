@@ -72,8 +72,12 @@ export default class HomePage {
       stories.forEach(story => {
         const storyCard = document.createElement('div');
         storyCard.className = 'bg-white p-4 rounded-lg shadow cursor-pointer hover:shadow-lg transition-shadow';
+        
+        // Use photoData if available, otherwise fall back to photoUrl
+        const imageSrc = story.photoData || story.photoUrl || '/icons/icon-192x192.png';
+        
         storyCard.innerHTML = `
-          <img src="${story.photoUrl}" alt="Story thumbnail" class="w-full h-48 object-cover rounded-lg mb-4">
+          <img src="${imageSrc}" alt="Story thumbnail" class="w-full h-48 object-cover rounded-lg mb-4">
           <h3 class="font-bold text-lg mb-2 text-black">${story.title}</h3>
           <p class="text-gray-600 mb-4">${story.description.substring(0, 100)}...</p>
           <button class="view-story btn btn-primary w-full" data-id="${story.id}">View Details</button>
@@ -83,10 +87,14 @@ export default class HomePage {
         const viewButton = storyCard.querySelector('.view-story');
         viewButton.addEventListener('click', async () => {
           const storyDetail = await StoryIdb.getStory(story.id);
+          
+          // Use photoData if available for the detail view
+          const detailImageSrc = storyDetail.photoData || storyDetail.photoUrl || '/icons/icon-192x192.png';
+          
           modalContent.innerHTML = `
             <div class="flex flex-col gap-4">
               <h2 class="text-2xl font-bold text-black">${storyDetail.title}</h2>
-              <img src="${storyDetail.photoUrl}" alt="Story Image" class="w-full h-96 object-contain rounded-lg shadow-lg">
+              <img src="${detailImageSrc}" alt="Story Image" class="w-full h-96 object-contain rounded-lg shadow-lg">
               <p class="text-gray-700 whitespace-pre-wrap leading-relaxed">${storyDetail.description}</p>
               <div class="text-sm text-gray-500">
                 <p>Created: ${new Date(storyDetail.createdAt).toLocaleDateString()}</p>
@@ -116,14 +124,38 @@ export default class HomePage {
             if (result.isConfirmed) {
               await StoryIdb.deleteStory(storyDetail.id);
               modal.close();
+              
+              // Send push notification for story deletion
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                  // Send message to service worker
+                  registration.active.postMessage({
+                    type: 'STORY_DELETED',
+                    title: 'Story Deleted',
+                    body: `"${storyDetail.title}" has been deleted`,
+                    url: '#/stories',
+                    icon: '/icons/icon-192x192.png',
+                    timestamp: Date.now()
+                  });
+                  
+                  console.log('Delete notification message sent to service worker');
+                }).catch(error => {
+                  console.error('Error sending deletion notification:', error);
+                });
+              }
+              
               // Refresh the stories grid
               storiesGrid.innerHTML = '';
               const updatedStories = await StoryIdb.getAllStories();
-              stories.forEach(story => {
+              updatedStories.forEach(story => {  // Changed from stories to updatedStories
                 const storyCard = document.createElement('div');
                 storyCard.className = 'bg-white p-4 rounded-lg shadow cursor-pointer hover:shadow-lg transition-shadow';
+                
+                // Use photoData if available for updated stories
+                const updatedImageSrc = story.photoData || story.photoUrl || '/icons/icon-192x192.png';
+                
                 storyCard.innerHTML = `
-                  <img src="${story.photoUrl}" alt="Story thumbnail" class="w-full h-48 object-cover rounded-lg mb-4">
+                  <img src="${updatedImageSrc}" alt="Story thumbnail" class="w-full h-48 object-cover rounded-lg mb-4">
                   <h3 class="font-bold text-lg mb-2 text-black">${story.title}</h3>
                   <p class="text-gray-600 mb-4">${story.description.substring(0, 100)}...</p>
                   <button class="view-story btn btn-primary w-full" data-id="${story.id}">View Details</button>

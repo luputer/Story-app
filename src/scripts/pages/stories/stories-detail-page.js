@@ -26,13 +26,18 @@ export default class StoryDetailPage {
             name,
             description,
             photoUrl,
+            photoData,
             lat,
             lon
         } = story;
+        
+        // Use photoData if available, otherwise fall back to photoUrl
+        const imageSrc = photoData || photoUrl || '/icons/icon-192x192.png';
+        
         const storyDetailContainer = document.getElementById('storyDetail');
 
         storyDetailContainer.innerHTML = `
-            <img src="${photoUrl}" alt="${name}" class="w-full h-64 object-contain rounded-lg">
+            <img src="${imageSrc}" alt="${name}" class="w-full h-64 object-contain rounded-lg">
             <h2 class="text-2xl font-bold mt-4 text-black">${name}</h2>
             <p class="text-gray-600 mt-2">${description}</p>
             ${lat && lon ? `<p class="text-gray-500 mt-2">📍 Location: ${lat}, ${lon}</p>` : ''}

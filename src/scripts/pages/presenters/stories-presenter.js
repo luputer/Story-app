@@ -77,10 +77,13 @@ export default class StoriesPresenter {
             story.lat && story.lon ?
             `<p class="text-sm text-gray-500">📍 ${story.lat.toFixed(3)}, ${story.lon.toFixed(3)}</p>` :
             "";
+            
+        // Use photoData if available, otherwise fall back to photoUrl
+        const imageSrc = story.photoData || story.photoUrl || '/icons/icon-192x192.png';
 
         return `
         <div class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
-          <img src="${story.photoUrl}" alt="Story by ${story.name}" class="w-full h-64 object-cover">
+          <img src="${imageSrc}" alt="Story by ${story.name}" class="w-full h-64 object-cover">
           <div class="p-4">
             <h3 class="text-lg font-bold text-gray-800">${story.name}</h3>
             <p class="text-sm text-gray-600">${story.description}</p>

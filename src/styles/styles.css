@@ -2,8 +2,14 @@
 
 @import "tailwindcss";
 @plugin "daisyui" {
-  themes: light --default, dark --prefersdark;
+  themes: light --default, dark --prefersdark, 
+  base: false, // Matikan default styling DaisyUI
+  compact: true, // Buat tampilan lebih kecil
+
 }
+
+
+
 
 ::view-transition-old(root),
 ::view-transition-new(root) {

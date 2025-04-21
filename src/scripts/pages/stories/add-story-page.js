@@ -184,18 +184,33 @@ export default class AddStoryPage {
               id: response.data?.story?.id || Date.now().toString(),
               title: document.getElementById("name").value,
               description: description,
-              photoUrl: URL.createObjectURL(photoFile),
+              photoUrl: null,
               lat: this._selectedLat,
               lon: this._selectedLon,
               createdAt: new Date().toISOString()
             };
 
+            // Store the actual file as a blob in IndexedDB instead of a URL
+            if (photoFile) {
+              try {
+                const reader = new FileReader();
+                reader.onload = async function(event) {
+                  storyData.photoData = event.target.result; // Store blob data directly
+                  await StoryIdb.addStory(storyData);
+                };
+                reader.readAsDataURL(photoFile); // Convert to data URL
+              } catch (fileError) {
+                console.error('Failed to process image file:', fileError);
+                await StoryIdb.addStory(storyData); // Save without photo if processing fails
+              }
+            } else {
+              await StoryIdb.addStory(storyData);
+            }
+            
             // Validate required fields before saving to IndexedDB
             if (!storyData.title || !storyData.description) {
               throw new Error('Story must have a title and description');
             }
-
-            await StoryIdb.addStory(storyData);
           } catch (idbError) {
             console.error('Failed to save to IndexedDB:', idbError);
             // Continue with the flow even if IndexedDB save fails
@@ -205,12 +220,23 @@ export default class AddStoryPage {
             // Send push notification to subscribers
             if ('serviceWorker' in navigator) {
               navigator.serviceWorker.ready.then(registration => {
+                // Get story details for the notification
+                const storyTitle = document.getElementById("name").value;
+                const storyDescription = description.substring(0, 50) + (description.length > 50 ? '...' : '');
+                
+                // Send message to service worker
                 registration.active.postMessage({
                   type: 'NEW_STORY',
-                  title: 'New Story Added',
-                  body: 'A new story has been added to the collection!',
-                  icon: '/favicon.png'
+                  title: 'New Story: ' + storyTitle,
+                  body: storyDescription,
+                  url: '#/stories',
+                  icon: '/icons/icon-192x192.png',
+                  timestamp: Date.now()
                 });
+                
+                console.log('Notification message sent to service worker');
+              }).catch(error => {
+                console.error('Error sending notification:', error);
               });
             }
             window.location.href = "#/stories";
