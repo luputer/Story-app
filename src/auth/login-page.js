@@ -113,7 +113,7 @@ export default class LoginPage {
                         id: response.loginResult.userId,
                         name: response.loginResult.name,
                     }));
-                    window.location.href = '/stories';
+                    window.location.href = '#/stories';
                 } else {
                     const errorMessage = document.createElement('div');
                     errorMessage.className = 'text-red-500 text-sm mt-4';
