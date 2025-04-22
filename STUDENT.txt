@@ -1,2 +1,2 @@
-APP_URL= https://story-app-sepia.vercel.app/#/
+APP_URL= https://story-app-git-main-luputers-projects.vercel.app/#/
 MAP_SERVICE_API_KEY=<api_key>
