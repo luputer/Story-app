@@ -1,6 +1,7 @@
 const CACHE_NAME = 'story-app-cache-v1';
 const SHELL_CACHE = 'story-app-shell-v1';
 const CONTENT_CACHE = 'story-app-content-v1';
+const IMAGE_CACHE = 'story-app-images-v1';
 
 const shellResources = [
   '/',
@@ -19,6 +20,11 @@ const shellResources = [
 function isCacheableRequest(request) {
   const url = new URL(request.url);
   return ['http:', 'https:'].includes(url.protocol);
+}
+
+// Helper function to check if a request is for an image
+function isImageRequest(request) {
+  return request.destination === 'image' || request.url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
 }
 
 self.addEventListener('install', event => {
@@ -41,6 +47,36 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       caches.match(event.request)
         .then(response => response || fetch(event.request))
+    );
+    return;
+  }
+
+  // Handle image requests with a specific strategy
+  if (isImageRequest(event.request)) {
+    event.respondWith(
+      caches.match(event.request)
+        .then(cachedResponse => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+
+          return fetch(event.request)
+            .then(response => {
+              if (!response || response.status !== 200) {
+                return response;
+              }
+
+              const responseToCache = response.clone();
+              caches.open(IMAGE_CACHE)
+                .then(cache => cache.put(event.request, responseToCache));
+
+              return response;
+            })
+            .catch(() => {
+              // Return a fallback image if available
+              return caches.match('/icons/icon-512x512.png');
+            });
+        })
     );
     return;
   }
@@ -86,7 +122,7 @@ self.addEventListener('fetch', event => {
 });
 
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [SHELL_CACHE, CONTENT_CACHE];
+  const cacheWhitelist = [SHELL_CACHE, CONTENT_CACHE, IMAGE_CACHE];
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
