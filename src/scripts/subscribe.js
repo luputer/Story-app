@@ -1,5 +1,8 @@
 import API_ENDPOINT from "../config/api-endpoint";
 import Swal from "sweetalert";
+import StoryApi from './data/story-api';
+
+const storyApi = new StoryApi();
 
 // Register the service worker
 if ('serviceWorker' in navigator) {
@@ -10,12 +13,36 @@ if ('serviceWorker' in navigator) {
       })
       .catch(error => {
         console.error('Service Worker registration failed:', error);
-      }); 
+      });
   });
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+  const subscribeButton = document.getElementById("subscribe-button");
+  const token = localStorage.getItem('token');
+
+  if (!token) {
+    subscribeButton.title = "You need to log in to subscribe to notifications.";
+  } else {
+    subscribeButton.title = ""; // Hapus tooltip jika user sudah login
+  }
+});
+
 async function toggleSubscription() {
   const subscribeButton = document.getElementById("subscribe-button");
+
+  // Periksa apakah user sudah login
+  const token = localStorage.getItem('token');
+  if (!token) {
+    await Swal({
+      title: "Login Required",
+      text: "You need to log in to subscribe to notifications.",
+      icon: "warning",
+      button: "OK",
+    });
+    return; // Hentikan eksekusi jika user belum login
+  }
+
   const isSubscribed = subscribeButton.textContent.trim() === "Unsubscribe";
 
   if (isSubscribed) {
@@ -26,7 +53,7 @@ async function toggleSubscription() {
       buttons: true,
       dangerMode: true,
     });
-    
+
     if (result) {
       await unsubscribeFromPush();
       subscribeButton.textContent = "Subscribe";
@@ -39,7 +66,7 @@ async function toggleSubscription() {
       icon: "info",
       buttons: true,
     });
-    
+
     if (result) {
       await subscribeToPush();
       subscribeButton.textContent = "Unsubscribe";
@@ -47,7 +74,6 @@ async function toggleSubscription() {
     }
   }
 }
-
 // Expose the toggleSubscription function to the global scope
 window.toggleSubscription = toggleSubscription;
 
@@ -56,28 +82,50 @@ async function subscribeToPush() {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(API_ENDPOINT.NOTIFICATIONS.VAPID_PUBLIC_KEY)
+      applicationServerKey: urlBase64ToUint8Array(API_ENDPOINT.NOTIFICATIONS.VAPID_PUBLIC_KEY),
     });
 
-    // Send subscription to server
+    // Log subscription data
     console.log("Subscribed to push notifications", subscription);
+
+    // Convert subscription to plain object
+    const subscriptionData = {
+      endpoint: subscription.endpoint,
+      keys: {
+        p256dh: arrayBufferToBase64(subscription.getKey('p256dh')), // Convert to Base64
+        auth: arrayBufferToBase64(subscription.getKey('auth')), // Convert to Base64
+      },
+    };
+
+    // Send subscription to server using StoryApi
+    const token = localStorage.getItem('token'); // Ambil token dari localStorage
+    const result = await storyApi.subscribePushNotification({
+      ...subscriptionData,
+      token,
+    });
+
+    console.log('Server response:', result);
+
+    if (result.error) {
+      throw new Error(`Failed to send subscription to server: ${result.message}`);
+    }
+
+    console.log("Subscription successfully sent to server");
   } catch (error) {
     if (error.name === 'NotAllowedError') {
       await Swal({
         title: "Permission Denied",
         text: "Please enable notifications in your browser settings to receive updates.",
         icon: "error",
-        button: "OK"
+        button: "OK",
       });
-      const subscribeButton = document.getElementById("subscribe-button");
-      subscribeButton.textContent = "Subscribe";
     } else {
       console.error('Failed to subscribe:', error);
       await Swal({
         title: "Subscription Failed",
         text: "There was an error while subscribing to notifications.",
         icon: "error",
-        button: "OK"
+        button: "OK",
       });
     }
     throw error;
@@ -107,4 +155,9 @@ function urlBase64ToUint8Array(base64String) {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
+}
+
+function arrayBufferToBase64(buffer) {
+  const binary = String.fromCharCode.apply(null, new Uint8Array(buffer));
+  return window.btoa(binary);
 }

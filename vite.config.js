@@ -1,8 +1,14 @@
-import { defineConfig } from 'vite';
-import { resolve } from 'path';
+import {
+  defineConfig
+} from 'vite';
+import {
+  resolve
+} from 'path';
 import tailwindcss from '@tailwindcss/vite';
+import {
+  generateSW
+} from 'workbox-build';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   root: resolve(__dirname, 'src'),
   publicDir: resolve(__dirname, 'public'),
@@ -21,6 +27,39 @@ export default defineConfig({
     }
   },
   plugins: [
-    tailwindcss()
+    tailwindcss(),
+    {
+      name: 'workbox-generate-sw',
+      closeBundle: async () => {
+        await generateSW({
+          swDest: resolve(__dirname, 'dist/sw.js'),
+          globDirectory: resolve(__dirname, 'dist'),
+          globPatterns: ['**/*.{html,js,css,png,jpg,svg}'],
+          runtimeCaching: [{
+              urlPattern: ({
+                request
+              }) => request.destination === 'image',
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'images-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 30 * 24 * 60 * 60, // 30 hari
+                },
+              },
+            },
+            {
+              urlPattern: ({
+                url
+              }) => url.origin === self.location.origin,
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'static-resources',
+              },
+            },
+          ],
+        });
+      }
+    }
   ]
 });

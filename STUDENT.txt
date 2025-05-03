@@ -1,3 +1,6 @@
-APP_URL= https://story-app-cbqx.vercel.app/#/
+APP_URL= https://story-app-dp2b.vercel.app/
 MAP_SERVICE_API_KEY=<api_key>
+
+
+xb*fxa-xa/fxa-fxb	
 
